@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <String>
 
+
 #define ROW_NUM     4 // four rows
 #define COLUMN_NUM  4 // four columns
 
@@ -18,19 +19,19 @@ typedef struct card_UID {
 }card_UID;
 
 typedef struct send_mode{
-  int statuss; // 0 regis 1 reset 2 forget card
+  int statuss; // 0 regis 1 reset 2 forget card 3 reset complete 4 register complete
 }send_mode;
 
-typedef struct send_open{
-  int statuss; // 1 open
-}send_open;
+typedef struct send_open_keypad{
+  int statuss; // 1 close 0 open
+}send_open_keypad;
 
 typedef struct servo_status{
   int servo_status;
 } servo_struct;
 
 typedef struct led_status{
-  int statuss; // 0 close 1 true 2 worng 3register
+  int statuss; // 0 regis 1 true 2 worng 3register
 }led_status;
 
 typedef struct keypad_oled{
@@ -42,7 +43,7 @@ send_mode mode_send;
 card_UID receive_card;
 led_status send_led;
 keypad_oled send_oled;
-send_open open_sen;
+send_open_keypad send_open;
 
 
 esp_now_peer_info_t peerInfo1; //1
@@ -145,7 +146,7 @@ void Regis(){
 
 void inputpass(){
   input_password = "";
-  send_oled.text = "Enter Password";
+  send_oled.text = "Enter Password"; //20
   esp_err_t result = esp_now_send(MacAddress3, (uint8_t *) &send_oled, sizeof(keypad_oled)); 
   if (result == ESP_OK) {
     Serial.println("Sent with success");
@@ -158,7 +159,6 @@ void inputpass(){
     char key = keypad.getKey();
     if (key) {
     Serial.println(key);
-     //ch+=1;
     if (key == '*') {
       input_password = ""; // clear input password
     } 
@@ -242,51 +242,33 @@ int confirmreset(){
     }
   }
 }
-void inputnisit(){
-  input_nisit = "";
+
+void checkpassreset(){
   while(true){
-    char key = keypad.getKey();
-    if (key) {
-    Serial.println(key);
-    if (key == '*') {
-      input_nisit = ""; // clear input password
-    } 
-    else if (key == '#') { // check password
-      if (nisit_id == input_nisit) {
-        Serial.println("The nisit is correct");
-        send_led.statuss = 1;
-        esp_err_t result2 = esp_now_send(MacAddress4, (uint8_t *) &send_led, sizeof(led_status)); 
-        if (result2 == ESP_OK) {
+    if(receive_card.UID){
+      inputpass();
+      send_oled.text = "Reset Complete";
+      esp_err_t result = esp_now_send(MacAddress3, (uint8_t *) &send_oled, sizeof(keypad_oled)); //mode 2 reset
+      if (result == ESP_OK) {
+        Serial.println("Sent with success");
+      }
+      else {
+        Serial.println("Error sending the data");
+      }
+      delay(500);
+      mode_send.statuss = 3; //reset complete
+      esp_err_t result = esp_now_send(MacAddress1, (uint8_t *) &mode_send, sizeof(mode_send)); //mode 2 reset
+       if (result == ESP_OK) {
           Serial.println("Sent with success");
         }
         else {
           Serial.println("Error sending the data");
         }
         delay(500);
-        inputpass();
-        break;
-
-      } else {
-        Serial.println("Nisit ID is incorrect, Please try again");
-        send_led.statuss = 2;
-        esp_err_t result2 = esp_now_send(MacAddress4, (uint8_t *) &send_led, sizeof(led_status)); 
-        if (result2 == ESP_OK) {
-          Serial.println("Sent with success");
-        }
-        else {
-          Serial.println("Error sending the data");
-        }
-       delay(500);
-      }
-
-      input_nisit = ""; // clear input password
+      break;  
     }
-    
-    else {
-      input_nisit += key;// append new character to input password string
-    } 
-   }
-  }  
+  }
+
 }
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
@@ -367,21 +349,39 @@ void setup() {
 }
 void loop() {
   char key = keypad.getKey();
- if(door_open == 1){
+ if(door_open == 1){ //if door close
   if (password == "" ){ // start 
     Regis(); //register
     //receive card UID 
     if(receive_card.UID){ //if scan
       Serial.println("Create Password");
       creatpass();
+      send_oled.text = "Register Complete";
+      esp_err_t result = esp_now_send(MacAddress3, (uint8_t *) &send_oled, sizeof(keypad_oled)); //mode 2 reset
+      if (result == ESP_OK) {
+        Serial.println("Sent with success");
+      }
+      else {
+        Serial.println("Error sending the data");
+      }
+      delay(500);
+      mode_send.statuss = 4; //register complete
+      esp_err_t result = esp_now_send(MacAddress1, (uint8_t *) &mode_send, sizeof(mode_send)); //mode 2 reset
+       if (result == ESP_OK) {
+          Serial.println("Sent with success");
+        }
+        else {
+          Serial.println("Error sending the data");
+        }
+      delay(500);
     }
   }
   else{
     if (key) {
     Serial.println(key);
     if (key == 'C'){ //use password to enter locker
-      Serial.println("Forget Card ");
-       send_oled.text = "Forget Card Please input your nisit number";
+        Serial.println("Forget Card ");
+       send_oled.text = "Forget Card Please input your password";
        esp_err_t result = esp_now_send(MacAddress3, (uint8_t *) &send_oled, sizeof(keypad_oled)); 
        if (result == ESP_OK) {
           Serial.println("Sent with success");
@@ -392,7 +392,7 @@ void loop() {
           Serial.println("Error sending the data");
         }
         delay(500);
-      mode_send.statuss = 2;
+      mode_send.statuss = 2; //forget card
       esp_err_t result = esp_now_send(MacAddress1, (uint8_t *) &mode_send, sizeof(mode_send)); //mode 2 reset
        if (result == ESP_OK) {
           Serial.println("Sent with success");
@@ -401,10 +401,10 @@ void loop() {
           Serial.println("Error sending the data");
         }
         delay(500);
-      inputnisit();
-      open_send.statuss = 1; //send open
+      inputpass();
+      send_open.statuss = 0; //send open
       door_open = 0;
-      esp_err_t result1 = esp_now_send(MacAddress1, (uint8_t *) &open_send, sizeof(send_open)); 
+      esp_err_t result1 = esp_now_send(MacAddress1, (uint8_t *) &send_open, sizeof(send_open)); 
        if (result1 == ESP_OK) {
           Serial.println("Sent with success");
         }
@@ -412,6 +412,22 @@ void loop() {
           Serial.println("Error sending the data");
         }
        delay(500);
+       esp_err_t result1 = esp_now_send(MacAddress6, (uint8_t *) &send_open, sizeof(send_open)); 
+       if (result1 == ESP_OK) {
+          Serial.println("Sent with success");
+        }
+        else {
+          Serial.println("Error sending the data");
+        }
+       delay(500);
+        send_oled.text = "Success";
+        esp_err_t result = esp_now_send(MacAddress3, (uint8_t *) &send_oled, sizeof(keypad_oled)); 
+        if (result == ESP_OK) {
+          Serial.println("Sent with success");
+        }
+        else {
+          Serial.println("Error sending the data");
+        }
     }
     else if(key == 'A' && password != ""){ //press register again
       //send mode 0
@@ -448,8 +464,8 @@ void loop() {
         else {
           Serial.println("Error sending the data");
         }
-        
         delay(500);
+        checkpassreset();
         password = "";
       }
     }
