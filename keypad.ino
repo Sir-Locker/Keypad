@@ -65,7 +65,7 @@ byte pin_column[COLUMN_NUM] = {16, 4, 0, 2};   // GPIO16, GPIO4, GPIO0, GPIO2 co
 
 Keypad keypad = Keypad( makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM );
 
-String password = "1234"; // change your password here
+String password = ""; // change your password here
 String input_password;
 int door_open = 1;//0 open 1 close
 int regiss = -1;
@@ -151,7 +151,7 @@ void inputpass(){
   else {
     Serial.println("Error sending the data");
   }
-  delay(500);
+  delay(1500);
   while(true){
     char key = keypad.getKey();
     if (key) {
@@ -167,7 +167,7 @@ void inputpass(){
       else {
         Serial.println("Error sending the data");
        }
-      delay(500);
+      delay(1500);
        send_oled.text = 12; //Enterpassword
       esp_err_t result9 = esp_now_send(MacAddress3, (uint8_t *) &send_oled, sizeof(keypad_oled)); 
       if (result9 == ESP_OK) {
@@ -189,7 +189,7 @@ void inputpass(){
         else {
           Serial.println("Error sending the data to led");
         }
-       delay(500);
+       delay(1500);
         break;
 
       } else {
@@ -202,7 +202,7 @@ void inputpass(){
       else {
         Serial.println("Error sending the data");
        }
-        delay(500);
+        delay(1500);
         send_led.statuss = 2;
         esp_err_t result1 = esp_now_send(MacAddress4, (uint8_t *) &send_led, sizeof(led_status)); 
         if (result1 == ESP_OK) {
@@ -235,7 +235,7 @@ int confirmreset(){
   else {
       Serial.println("Error sending the data");
   }
-  delay(500);
+  delay(1500);
   while(true){
     char key = keypad.getKey();
     if(key){
@@ -249,7 +249,7 @@ int confirmreset(){
         else {
           Serial.println("Error sending the data");
         }
-        delay(500);
+        delay(1500);
         return 1; //reset
       }
       else if(key == '*'){
@@ -283,7 +283,7 @@ void checkpassreset(){
       else {
         Serial.println("Error sending the data");
       }
-      delay(500);
+      delay(1500);
       mode_send.statuss = 3; //reset complete
       esp_err_t result = esp_now_send(MacAddress1, (uint8_t *) &mode_send, sizeof(mode_send)); //mode 2 reset
        if (result == ESP_OK) {
@@ -292,7 +292,7 @@ void checkpassreset(){
         else {
           Serial.println("Error sending the data");
         }
-        delay(500);
+        delay(1500);
       break;  
     }
   }
@@ -417,7 +417,7 @@ void loop() {
       else {
         Serial.println("Error sending the data");
       }
-      delay(500);
+      delay(1500);
       mode_send.statuss = 4; //register complete
       esp_err_t result5 = esp_now_send(MacAddress1, (uint8_t *) &mode_send, sizeof(mode_send)); //mode 2 reset
        if (result5 == ESP_OK) {
@@ -426,7 +426,7 @@ void loop() {
         else {
           Serial.println("Error sending the data");
         }
-      delay(500);
+      delay(1500);
       regiss=-1;
     }
   }
@@ -453,7 +453,7 @@ void loop() {
         else {
           Serial.println("Error sending the data");
         }
-        delay(500);
+        delay(1500);
       inputpass();
       send_open.statuss = 0; //send open
       door_open = 0;
@@ -465,7 +465,7 @@ void loop() {
         else {
           Serial.println("Error sending the data");
         }
-        delay(500);
+        delay(1500);
        esp_err_t result2 = esp_now_send(MacAddress6, (uint8_t *) &send_open, sizeof(send_open)); 
        if (result2 == ESP_OK) {
           Serial.println("Sent with success");
@@ -473,7 +473,7 @@ void loop() {
         else {
           Serial.println("Error sending the data");
         }
-       delay(500);
+       delay(1500);
         send_oled.text = 5; //5
         esp_err_t result3 = esp_now_send(MacAddress3, (uint8_t *) &send_oled, sizeof(keypad_oled)); 
         if (result3 == ESP_OK) {
@@ -528,7 +528,7 @@ void loop() {
         else {
           Serial.println("Error sending the data");
         }
-        delay(500);
+        delay(1500);
         checkpassreset();
         password = "";
         regiss=-1;
